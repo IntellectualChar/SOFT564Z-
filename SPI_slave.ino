@@ -3,6 +3,8 @@ char buff [50];
 volatile byte indx;
 volatile boolean process;
 
+char info[] = "hello master\n";
+
 void setup (void) {
    Serial.begin (9600);
    pinMode(MISO, OUTPUT); 
@@ -15,18 +17,22 @@ void setup (void) {
 ISR (SPI_STC_vect)  
 { 
    byte c = SPDR; // read byte from SPI Data Register
-   if (indx < sizeof buff) {
-      buff [indx++] = c; // save data in the next index in the array buff
+   if (indx < sizeof buff) { 
       if (c == '\0') 
       process = true;
+      SPDR = info[indx];
+      buff [indx++] = c; // save data in the next index in the array buff
    }
 }
 
 void loop (void) {
    if (process) {
       process = false; //reset the process
-      Serial.println (buff); //print the recieved message on serial monitor
+      
+      //Serial.println (info); //print the recieved message on serial monitor
       Serial.print("helllo");
       indx= 0; //reset button to zero
    }
+
+ //Serial.print(info);
 }
