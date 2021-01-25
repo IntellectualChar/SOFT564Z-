@@ -5,8 +5,9 @@
 
 #include "SPI.h"
 #include <Servo.h>
+#include <IRremote.h>
 #define echoPin 2 // attach pin D2
-#define trigPin 4 //attach pin D3
+#define trigPin 4 //attach pin D4
 
 // Creating objects and variables for SPI
 char buff [50];
@@ -20,18 +21,26 @@ long duration; // variable for the duration of sound wave travel
 int distance;  // variable for the distance
 int pos = 0;
 
+// Creating objects and variables for IR receiver and remote
+const int RECV_PIN = 7;       // Set pin 7 as signal from receiver
+IRrecv irrecv(RECV_PIN);      // Set receive pin data as irrecv
+decode_results results;       
+unsigned long key_value = 0;  // Set key value as 0 to start
+
 void setup (void) {
-   Serial.begin (9600);      // Start serial monitor at baudrate 9600
+   Serial.begin (9600);       // Start serial monitor at baudrate 9600
    pinMode(MISO, OUTPUT); 
-   SPCR |= _BV(SPE);         // turn on SPI in slave mode
-   indx = 0;                 // buffer empty
+   SPCR |= _BV(SPE);          // turn on SPI in slave mode
+   indx = 0;                  // start 0buffer empty
    process = false;
-   SPI.attachInterrupt();    // turn on interrupt
+   SPI.attachInterrupt();     // turn on interrupt
    // Set up for sensors and actuator
-   pinMode(trigPin, OUTPUT); // Sets the trigPin as an OUTPUT
-   pinMode(echoPin, INPUT);  // Sets the echoPin as an INPUT
+   pinMode(trigPin, OUTPUT);  // Sets the trigPin as an OUTPUT
+   pinMode(echoPin, INPUT);   // Sets the echoPin as an INPUT
    Serial.println("Ultrasonic Sensor and servo Test"); 
    servo1.attach(10);         // attaches the servo on pin 10
+   irrecv.enableIRIn();        // Set irrecv as input
+   irrecv.blink13(true);       // Blink onboard LED when signal from remote received
 }
 
 ISR (SPI_STC_vect)  
@@ -62,7 +71,7 @@ void loop (void) {
         duration = pulseIn(echoPin, HIGH);
         // Calculating the distance
         distance = duration * 0.034 / 2; 
-        // Displays the distance on the Monitor
+        Serial.println(distance); // Displays the distance on the Monitor
         if(distance < 25)
         {
           
@@ -76,7 +85,68 @@ void loop (void) {
           delay(15);                            // waits 15ms for the servo to reach the position
         }
       }
-        
+      if (irrecv.decode(&results)){
+ 
+        if (results.value == 0XFFFFFFFF)
+          results.value = key_value;
+          
+        // Switch cases to print the value of the key pressed
+        switch(results.value){
+          case 0xFFA25D:
+          Serial.println("1");
+          break;
+          case 0xFF629D:
+          Serial.println("2");
+          break;
+          case 0xFFE21D:
+          Serial.println("3");
+          break;
+          case 0xFF22DD:
+          Serial.println("4");
+          break;
+          case 0xFF02FD:
+          Serial.println("5");
+          break ;  
+          case 0xFFC23D:
+          Serial.println("6");
+          break ;               
+          case 0xFFE01F:
+          Serial.println("7");
+          break ;  
+          case 0xFFA857:
+          Serial.println("8");
+          break ;  
+          case 0xFF906F:
+          Serial.println("9");
+          break ;  
+          case 0xFF9867:
+          Serial.println("0");
+          break ;  
+          case 0xFF6897:
+          Serial.println("*");
+          break ;
+          case 0xFFB04F:
+          Serial.println("#");
+          break ;
+          case 0xFF18E7:
+          Serial.println("^");
+          break ;
+          case 0xFF5AA5:
+          Serial.println(">");
+          break ;
+          case 0xFF10EF:
+          Serial.println("<");
+          break ;
+          case 0xFF4AB5:
+          Serial.println("V");
+          break ;
+          case 0xFF38C7:
+          Serial.println("ok");
+          break ;     
+        }
+        key_value = results.value;
+        irrecv.resume(); 
+   }  
         Serial.print("Distance: ");
         Serial.print(distance);
         Serial.println(" cm");
